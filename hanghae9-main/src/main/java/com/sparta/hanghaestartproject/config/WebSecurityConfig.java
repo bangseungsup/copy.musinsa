@@ -6,7 +6,6 @@ import com.sparta.hanghaestartproject.jwt.JwtUtil;
 import com.sparta.hanghaestartproject.security.CustomAuthenticationEntryPoint;
 import com.sparta.hanghaestartproject.security.CustomSecurityFilter;
 import com.sparta.hanghaestartproject.security.UserDetailsServiceImpl;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,9 +19,6 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import org.springframework.security.web.authentication.logout.LogoutHandler;
-import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
-
 
 @Configuration
 @EnableWebSecurity // 스프링 Security 지원을 가능하게 함
@@ -33,22 +29,17 @@ public class WebSecurityConfig {
      private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
      private final CustomAccessDeniedHandler customAccessDeniedHandler;
      private final UserDetailsServiceImpl userDetailsService;
-
-     private final LogoutHandler logoutHandler;
-     private final LogoutSuccessHandler logoutSuccessHandler;
      
      // RequiredArgsConstructor
      public WebSecurityConfig(
                               UserDetailsServiceImpl userDetailsService,
                               CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
                               CustomAccessDeniedHandler customAccessDeniedHandler,
-                              JwtUtil jwtUtil, LogoutHandler logoutHandler, LogoutSuccessHandler logoutSuccessHandler){
+                              JwtUtil jwtUtil){
           this.userDetailsService = userDetailsService;
           this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
           this.customAccessDeniedHandler = customAccessDeniedHandler;
           this.jwtUtil = jwtUtil;
-          this.logoutHandler = logoutHandler;
-          this.logoutSuccessHandler = logoutSuccessHandler;
      }
      
      @Bean // 비밀번호 암호화 기능 등록
@@ -81,15 +72,7 @@ public class WebSecurityConfig {
                //7. Custom Security Filter에서 SecurityContextHolder 에 인증을 완료한 사용자의 상세 정보를 저장하는데 이를 통해 Spring Security 에 인증이 완료 되었다는 것을 알려준다
                .and().addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
 //               ;
-          http
-                  .logout(logout -> logout
-                          .logoutUrl("/logout")
-                          .logoutSuccessUrl("/index") //메인페이지 URL넣기 프론트랑 상의
-                          //.logoutSuccessHandler(logoutSuccessHandler) // ??
-                          .invalidateHttpSession(true)
-                          .addLogoutHandler(logoutHandler)
-                          //.deleteCookies(cookieNamesToClear) // 지울 쿠키가 있으면 쿠키이름 넣어주기, 프론트엔드랑 소통
-                  );
+
           // Custom 로그인 페이지 사용
           http.formLogin().loginPage("/api/user/login-page").permitAll();
           // Custom Filter 등록하기 >> 언제쓰는거?
@@ -103,6 +86,5 @@ public class WebSecurityConfig {
           http.exceptionHandling().accessDeniedHandler(customAccessDeniedHandler);
           return http.build();
      }
-
 
 }
