@@ -1,10 +1,10 @@
 package com.sparta.hanghaestartproject.config;
 
 import com.sparta.hanghaestartproject.handler.CustomAccessDeniedHandler;
+import com.sparta.hanghaestartproject.handler.CustomLogoutSuccessHandler;
 import com.sparta.hanghaestartproject.jwt.JwtAuthFilter;
 import com.sparta.hanghaestartproject.jwt.JwtUtil;
 import com.sparta.hanghaestartproject.security.CustomAuthenticationEntryPoint;
-import com.sparta.hanghaestartproject.security.CustomSecurityFilter;
 import com.sparta.hanghaestartproject.security.UserDetailsServiceImpl;
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
@@ -29,17 +29,22 @@ public class WebSecurityConfig {
      private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
      private final CustomAccessDeniedHandler customAccessDeniedHandler;
      private final UserDetailsServiceImpl userDetailsService;
+
+     private final CustomLogoutSuccessHandler customLogoutSuccessHandler;
+
      
      // RequiredArgsConstructor
      public WebSecurityConfig(
-                              UserDetailsServiceImpl userDetailsService,
-                              CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
-                              CustomAccessDeniedHandler customAccessDeniedHandler,
-                              JwtUtil jwtUtil){
+             UserDetailsServiceImpl userDetailsService,
+             CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+             CustomAccessDeniedHandler customAccessDeniedHandler,
+             JwtUtil jwtUtil, CustomLogoutSuccessHandler customLogoutSuccessHandler){
           this.userDetailsService = userDetailsService;
           this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
           this.customAccessDeniedHandler = customAccessDeniedHandler;
           this.jwtUtil = jwtUtil;
+
+          this.customLogoutSuccessHandler = customLogoutSuccessHandler;
      }
      
      @Bean // 비밀번호 암호화 기능 등록
@@ -72,6 +77,15 @@ public class WebSecurityConfig {
                //7. Custom Security Filter에서 SecurityContextHolder 에 인증을 완료한 사용자의 상세 정보를 저장하는데 이를 통해 Spring Security 에 인증이 완료 되었다는 것을 알려준다
                .and().addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
 //               ;
+
+          http.logout(logout -> logout
+                          .logoutUrl("/logout") // URL + /logout
+                          .logoutSuccessUrl("/my/index") // 로그아웃 후 인덱스 프론트랑 상의
+                          .logoutSuccessHandler(customLogoutSuccessHandler)
+                          //.invalidateHttpSession(true)
+                          //.addLogoutHandler(logoutHandler)
+                          //.deleteCookies(cookieNamesToClear)
+                  );
 
           // Custom 로그인 페이지 사용
           http.formLogin().loginPage("/api/user/login-page").permitAll();
