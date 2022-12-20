@@ -4,8 +4,8 @@ import com.sparta.hanghaestartproject.handler.CustomAccessDeniedHandler;
 import com.sparta.hanghaestartproject.jwt.JwtAuthFilter;
 import com.sparta.hanghaestartproject.jwt.JwtUtil;
 import com.sparta.hanghaestartproject.security.CustomAuthenticationEntryPoint;
-import com.sparta.hanghaestartproject.security.CustomSecurityFilter;
 import com.sparta.hanghaestartproject.security.UserDetailsServiceImpl;
+
 import org.springframework.boot.autoconfigure.security.servlet.PathRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -19,6 +19,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource; //cors
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource; //cors
+
+import java.util.Arrays;
+
 
 @Configuration
 @EnableWebSecurity // 스프링 Security 지원을 가능하게 함
@@ -47,13 +53,13 @@ public class WebSecurityConfig {
           return new BCryptPasswordEncoder();
      }
 
-     @Bean
-     public WebSecurityCustomizer webSecurityCustomizer() {
-          // h2-console 사용 및 resources 접근 허용 설정
-          return (web) -> web.ignoring()
-               .requestMatchers(PathRequest.toH2Console())
-               .requestMatchers(PathRequest.toStaticResources().atCommonLocations());
-     }
+//     @Bean
+//     public WebSecurityCustomizer webSecurityCustomizer() {
+//          // h2-console 사용 및 resources 접근 허용 설정
+//          return (web) -> web.ignoring()
+//               .requestMatchers(PathRequest.toH2Console())
+//               .requestMatchers(PathRequest.toStaticResources().atCommonLocations());
+//     }
 
      @Bean
      public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -71,20 +77,46 @@ public class WebSecurityConfig {
                //6. 서버는 JWT 토큰을 검증하고 토큰의 정보를 사용하여 사용자의 인증을 진행해주는 Spring Security 에 등록한 Custom Security Filter 를 사용하여 인증/인가를 처리한다.
                //7. Custom Security Filter에서 SecurityContextHolder 에 인증을 완료한 사용자의 상세 정보를 저장하는데 이를 통해 Spring Security 에 인증이 완료 되었다는 것을 알려준다
                .and().addFilterBefore(new JwtAuthFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
-//               ;
+//
 
           // Custom 로그인 페이지 사용
           http.formLogin().loginPage("/api/user/login-page").permitAll();
           // Custom Filter 등록하기 >> 언제쓰는거?
 //          http.addFilterBefore(new CustomSecurityFilter(userDetailsService, passwordEncoder()), UsernamePasswordAuthenticationFilter.class);
           // 접근 제한 페이지 이동 설정
-          http.exceptionHandling().accessDeniedPage("/api/user/forbidden");
+          http.exceptionHandling().accessDeniedPage("/api/user/forbidden")
+                  .and().cors();
           // 401 Error 처리, Authorization 즉, 인증과정에서 실패할 시 처리
-          http.exceptionHandling().authenticationEntryPoint(customAuthenticationEntryPoint);
-
+          http.exceptionHandling().authenticationEntryPoint(customAuthenticationEntryPoint)
+                  .and().cors();
           // 403 Error 처리, 인증과는 별개로 추가적인 권한이 충족되지 않는 경우
-          http.exceptionHandling().accessDeniedHandler(customAccessDeniedHandler);
+          http.exceptionHandling().accessDeniedHandler(customAccessDeniedHandler)
+                  .and().cors();
           return http.build();
      }
+     @Bean
+     public CorsConfigurationSource corsConfigurationSource(){
 
+          CorsConfiguration config = new CorsConfiguration();
+
+          config.addAllowedOrigin("http://localhost:3000");
+
+          config.addExposedHeader(JwtUtil.AUTHORIZATION_HEADER);
+
+          config.addAllowedMethod("*");
+
+          config.addAllowedHeader("*");
+
+          config.setAllowCredentials(true);
+
+          config.validateAllowCredentials();
+
+          UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+          source.registerCorsConfiguration("/**", config);
+
+          return source;
+
+     }
 }
+
+
